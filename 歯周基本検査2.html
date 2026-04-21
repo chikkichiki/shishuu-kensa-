@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>歯周基本検査 v5</title>
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+html { height: 100%; }
+body { margin: 0; padding: 6px; padding-top: max(6px, env(safe-area-inset-top)); padding-bottom: max(6px, env(safe-area-inset-bottom)); background: #e2e8f0; font-family: -apple-system, 'Hiragino Sans', sans-serif; color: #1e293b; }
+.card { background: white; border-radius: 14px; padding: 8px 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.13); }
+/* ヘッダー */
+.hdr { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 6px; margin-bottom: 6px; gap: 6px; flex-wrap: wrap; }
+.hdr h2 { margin: 0; font-size: 14px; white-space: nowrap; flex-shrink: 0; }
+.hdr-r { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.hdr input[type="text"] { border: none; border-bottom: 2px solid #94a3b8; font-size: 12px; background: transparent; }
+.hdr input[type="date"] { border: none; font-size: 12px; background: transparent; }
+/* 点法タブ */
+.mode-tabs { display: flex; gap: 3px; background: #f1f5f9; border-radius: 10px; padding: 3px; flex-shrink: 0; }
+.mode-tab { padding: 5px 12px; border-radius: 7px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; background: transparent; color: #64748b; }
+.mode-tab.active { background: #1e293b; color: white; }
+/* 統計 */
+.stats { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; margin-bottom: 6px; }
+.sbox { background: #f8fafc; padding: 4px 3px; border-radius: 7px; text-align: center; border-left: 4px solid #94a3b8; font-size: 9px; line-height: 1.4; }
+.sval { font-size: 18px; font-weight: 900; display: block; }
+/* スクリーンタブ */
+.stabs { display: flex; gap: 4px; margin-bottom: 6px; }
+.stab { flex: 1; padding: 8px 4px; border-radius: 9px; border: 2px solid #e2e8f0; font-size: 12px; font-weight: bold; cursor: pointer; background: #f8fafc; color: #64748b; text-align: center; }
+.stab.active { background: #0f766e; color: white; border-color: #0f766e; }
+/* フェーズバー */
+.phase-bar { display: none; gap: 3px; margin-bottom: 5px; }
+.phase-bar.show { display: flex; }
+.phase-step { flex: 1; padding: 3px 2px; border-radius: 5px; text-align: center; font-size: 9px; font-weight: bold; background: #f1f5f9; color: #94a3b8; line-height: 1.3; }
+.phase-step.done { background: #dcfce7; color: #15803d; }
+.phase-step.active { background: #0f766e; color: white; }
+/* 歯式 */
+.jaw-wrap { border: 2px solid #e2e8f0; border-radius: 10px; padding: 4px; margin-bottom: 5px; display: flex; flex-direction: column; gap: 0; touch-action: none; }
+.jaw-flex { display: flex; align-items: stretch; gap: 5px; }
+.jaw-flex.upper { padding-bottom: 6px; border-bottom: 3px solid #dc2626; margin-bottom: 6px; }
+.jaw-side-lbl { font-weight: 900; font-size: 16px; color: white; background: #0f766e; display: flex; align-items: center; justify-content: center; width: 22px; flex-shrink: 0; border-radius: 5px; }
+.jaw-row { flex: 1; display: grid; grid-template-columns: repeat(8,1fr) 6px repeat(8,1fr); gap: 2px; }
+.midline-vert { background: #dc2626; border-radius: 2px; align-self: stretch; min-height: 100%; }
+.tbox { border: 1.5px solid #cbd5e1; border-radius: 5px; font-size: 7px; text-align: center; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; cursor: pointer; overflow: hidden; padding: 1px 0; }
+.q-ur, .q-ul, .q-lr, .q-ll { background: white; }
+.tbox-bop { background: #fca5a5 !important; }
+.tbox-pus { background: #93c5fd !important; }
+.tbox-both { background: #c4b5fd !important; }
+.qlabel { position: absolute; top: 1px; left: 2px; font-size: 8px; color: #64748b; font-weight: bold; }
+.tnum { font-weight: 900; background: rgba(255,255,255,0.7); width: 100%; font-size: 15px; padding: 2px 0; border-bottom: 1px solid #cbd5e1; color: #0f172a; letter-spacing: 0.5px; }
+.missing { background: #e2e8f0 !important; opacity: 0.4; }
+.active-tbox { border: 3px solid #0f766e !important; box-shadow: 0 0 10px rgba(15,118,110,0.4); z-index: 10; }
+.range-in-tbox { border: 2px solid #f59e0b !important; }
+.drag-range-tbox { border: 2px solid #f59e0b !important; background-color: rgba(254,243,199,0.7) !important; }
+/* 歯ボックス高さ（スクリーン×点法） */
+.sc0.mode-1 .tbox { height: 86px; min-height: 86px; }
+.sc0.mode-4 .tbox { height: 100px; min-height: 100px; }
+.sc0.mode-6 .tbox { height: 118px; min-height: 118px; }
+.sc1 .tbox { height: 78px; min-height: 78px; }
+.sc2 .tbox { height: 72px; min-height: 72px; }
+/* PD数値 */
+.vnum { font-size: 32px; font-weight: 900; line-height: 1; }
+.c-o { color: #f97316; } .c-r { color: #dc2626; } .c-p { color: #7e22ce; }
+/* 4点法グリッド */
+.pd4-wrap { width: 100%; padding: 0 1px; }
+.pd4-row { display: flex; justify-content: space-around; }
+.pd4-cell { font-size: 13px; font-weight: 900; flex: 1; text-align: center; border-radius: 2px; padding: 2px 0; }
+.pd4-sep { font-size: 8px; color: #64748b; text-align: center; line-height: 1.2; font-weight: bold; }
+/* 6点法グリッド */
+.pd6-wrap { width: 100%; padding: 0 1px; }
+.pd6-row { display: flex; justify-content: space-around; }
+.pd6-cell { font-size: 11px; font-weight: 900; flex: 1; text-align: center; border-radius: 2px; padding: 1px 0; }
+.pd6-sep { font-size: 8px; color: #64748b; text-align: center; line-height: 1.2; font-weight: bold; }
+.has-bop { background: #fecaca !important; } .has-pus { background: #bfdbfe !important; } .has-both { background: #e9d5ff !important; }
+/* 動揺値 */
+.mob-val-big { font-size: 22px; font-weight: 900; color: #1e293b; line-height: 1; }
+/* プラーク円（プラーク画面のみ表示） */
+.pchart { width: 20px; height: 20px; border: 1px solid #94a3b8; border-radius: 50%; position: relative; overflow: hidden; background: white; flex-shrink: 0; }
+.sc0 .pchart, .sc1 .pchart { display: none !important; }
+.pp { position: absolute; width: 100%; height: 100%; background: #facc15; opacity: 0; pointer-events: none; }
+.st { clip-path: polygon(50% 50%, 0 0, 100% 0); }
+.sb { clip-path: polygon(50% 50%, 0 100%, 100% 100%); }
+.sl { clip-path: polygon(50% 50%, 0 0, 0 100%); }
+.sr { clip-path: polygon(50% 50%, 100% 0, 100% 100%); }
+/* ドット */
+.dots { display: flex; justify-content: center; gap: 2px; height: 6px; }
+/* ピッカー */
+#pt-picker6, #pt-picker4 { display: none; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 10px; padding: 5px 7px; margin-bottom: 5px; }
+#pt-picker6.show, #pt-picker4.show { display: block; }
+.picker-title { font-size: 11px; font-weight: bold; color: #64748b; margin-bottom: 4px; }
+.picker-grid6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.picker-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.pt-btn { border-radius: 7px; border: 2px solid #e2e8f0; background: white; padding: 5px 2px; font-size: 10px; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 46px; justify-content: center; }
+.pt-btn.selected { border-color: #0f766e; background: #f0fdf9; }
+.pt-btn.has-bop { background: #fecaca; border-color: #ef4444; }
+.pt-btn.has-pus { background: #bfdbfe; border-color: #3b82f6; }
+.pt-btn.has-both { background: #e9d5ff; border-color: #a855f7; }
+.pt-lbl { font-size: 9px; color: #64748b; }
+.pt-val { font-size: 15px; font-weight: 900; }
+/* パネル */
+.panel { background: #f1f5f9; border-top: 3px solid #cbd5e1; border-radius: 10px; padding: 7px 8px; display: flex; gap: 8px; align-items: stretch; }
+.p-left { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 76px; flex-shrink: 0; }
+#cur-lbl { font-size: 26px; font-weight: 900; color: #0f766e; line-height: 1; }
+#cur-sub { font-size: 11px; color: #059669; font-weight: bold; text-align: center; min-height: 15px; background: #f0fdf4; border-radius: 5px; padding: 1px 6px; }
+.btn { border-radius: 10px; font-weight: bold; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.12); background: white; color: #1e293b; -webkit-appearance: none; }
+.btn:active { opacity: 0.7; transform: scale(0.93); }
+.bc { height: 36px; width: 100%; font-size: 11px; border: 1.5px solid #cbd5e1; }
+/* ポケットパネル */
+.num-grid { flex: 1; display: grid; grid-template-columns: repeat(6,1fr); gap: 4px; }
+.bn { background: #1e293b; color: white; font-size: 22px; min-height: 54px; border-radius: 10px; }
+/* 動揺パネル */
+.mob-panel { flex: 1; display: flex; gap: 6px; align-items: center; justify-content: center; }
+.mob-btn { font-size: 30px; font-weight: 900; min-height: 70px; flex: 1; max-width: 90px; border-radius: 12px; border: 2px solid #cbd5e1; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.12); }
+.mob-btn:active { opacity: 0.7; }
+.mob-sel-0 { background: #dcfce7 !important; border-color: #22c55e !important; }
+.mob-sel-1 { background: #fef9c3 !important; border-color: #eab308 !important; }
+.mob-sel-2 { background: #fed7aa !important; border-color: #f97316 !important; }
+.mob-sel-3 { background: #fecaca !important; border-color: #ef4444 !important; }
+/* プラークパネル */
+.plq-panel { flex: 1; display: flex; align-items: center; justify-content: center; gap: 16px; }
+.plq-grid { display: grid; grid-template-columns: 58px 58px 58px; grid-template-rows: 52px 52px 52px; gap: 4px; }
+.bp { border-radius: 10px; font-size: 15px; font-weight: 900; background: #fef9c3; color: #713f12; border: 1.5px solid #fde047; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.10); }
+.bp:active { opacity: 0.7; }
+.bp-on { background: #facc15 !important; border-color: #ca8a04 !important; }
+/* range/missing btn state */
+#range-btn.range-active { background: #f59e0b !important; color: white !important; border-color: #d97706 !important; }
+#missing-btn.missing-active { background: #dc2626 !important; color: white !important; border: none !important; }
+@media print {
+  .panel, .phase-bar, #pt-picker6, #pt-picker4, .stabs, .mode-tabs { display: none !important; }
+  body { background: white; }
+}
+</style>
+</head>
+<body onload="if(typeof safeInit==='function')safeInit()">
+<!-- JS動作確認バナー：JSが動けば即座に非表示になる -->
+<div id="nojs-msg" style="position:fixed;top:0;left:0;right:0;background:#f59e0b;color:white;padding:12px;text-align:center;font-size:15px;font-weight:bold;z-index:9999;">
+  ⚠️ 読み込み中… 表示されない場合はSafariで開いてください（v5）
+</div>
+<script>document.getElementById('nojs-msg').style.display='none';</script>
+<div class="card">
+  <!-- ヘッダー -->
+  <div class="hdr">
+    <h2>歯周基本検査 <span style="font-size:10px;color:#94a3b8">v5</span></h2>
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode(1)">1点法</button>
+      <button class="mode-tab" onclick="setMode(4)">4点法</button>
+      <button class="mode-tab" onclick="setMode(6)">6点法</button>
+    </div>
+    <div class="hdr-r">
+      <span>No：<input type="text" id="karte-no" placeholder="カルテ番号" style="width:80px"></span>
+      <span>氏：<input type="text" id="pt-name" placeholder="氏名" style="width:65px"></span>
+      <span>日：<input type="date" id="d-in"></span>
+      <button id="copy-btn" onclick="copyEMR()" style="background:#059669;color:white;border:none;padding:7px 10px;border-radius:9px;font-size:12px;font-weight:bold;">📋 コピー</button>
+      <button onclick="window.print()" style="padding:7px 9px;background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:9px;font-size:11px;font-weight:bold;">印刷</button>
+    </div>
+  </div>
+
+  <!-- 統計 -->
+  <div class="stats">
+    <div class="sbox">現在歯数<br><span class="sval" id="s-t">28</span>本</div>
+    <div class="sbox" style="border-color:#facc15">PCR<br><span class="sval" id="s-p" style="color:#a16207">0</span>%</div>
+    <div class="sbox" style="border-color:#ef4444">BOP<br><span class="sval" id="s-b" style="color:#dc2626">0</span>%</div>
+    <div class="sbox" style="border-color:#3b82f6">排膿率<br><span class="sval" id="s-n" style="color:#2563eb">0</span>%</div>
+    <div class="sbox" style="border-color:#a855f7">4mm↑<br><span class="sval" id="s-d" style="color:#7c3aed">0</span><span style="font-size:10px;color:#7c3aed"> / <span id="s-meas">0</span></span></div>
+  </div>
+
+  <!-- スクリーンタブ -->
+  <div class="stabs">
+    <button class="stab active" onclick="setScreen(0)">ポケット・出血排膿</button>
+    <button class="stab" onclick="setScreen(1)">動揺</button>
+    <button class="stab" onclick="setScreen(2)">プラーク</button>
+  </div>
+
+  <!-- フェーズバー -->
+  <div id="phase-bar" class="phase-bar">
+    <div id="ph-0" class="phase-step">① 下顎頬側</div>
+    <div id="ph-1" class="phase-step">② 下顎舌側</div>
+    <div id="ph-2" class="phase-step">③ 上顎頬側</div>
+    <div id="ph-3" class="phase-step">④ 上顎口蓋</div>
+  </div>
+
+  <!-- 歯式 -->
+  <div id="jaw-wrap" class="jaw-wrap sc0 mode-1">
+    <div class="jaw-flex upper">
+      <span class="jaw-side-lbl">上</span>
+      <div id="u-row" class="jaw-row"></div>
+    </div>
+    <div class="jaw-flex">
+      <span class="jaw-side-lbl">下</span>
+      <div id="l-row" class="jaw-row"></div>
+    </div>
+  </div>
+
+  <!-- 6点法ピッカー -->
+  <div id="pt-picker6">
+    <div class="picker-title" id="title6">#38 の計測点</div>
+    <div class="picker-grid6" id="grid6"></div>
+  </div>
+
+  <!-- 4点法ピッカー -->
+  <div id="pt-picker4">
+    <div class="picker-title" id="title4">#38 の計測点</div>
+    <div class="picker-grid4" id="grid4"></div>
+  </div>
+
+  <!-- 入力パネル -->
+  <div class="panel">
+    <div class="p-left">
+      <div id="cur-lbl">#38</div>
+      <div id="cur-sub"></div>
+      <button class="btn bc" onclick="goBack()">◀ 戻る</button>
+      <button id="missing-btn" class="btn bc" onclick="markMissing()" style="background:#64748b;color:white;border:none;">欠損</button>
+      <button id="range-btn" class="btn bc" onclick="toggleRange()" style="font-size:11px;">範囲選択</button>
+      <button class="btn bc" onclick="clVal()" style="font-size:13px;">C</button>
+    </div>
+    <div id="panel-body" style="flex:1;display:flex;"></div>
+  </div>
+</div>
+
+<script>
+// ── 定数 ─────────────────────────────────────────────
+const WISDOM = new Set([18,28,38,48]);
+const uArr = [18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+const lArr = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
+const TEETH = [...uArr,...lArr];
+const RIGHTS = new Set([18,17,16,15,14,13,12,11,48,47,46,45,44,43,42,41]);
+const INPUT_1 = [38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48,18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
+
+// 6点法フェーズ
+const PH6 = [
+  {teeth:[38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48],idxs:[0,1,2],labels:['頬遠','頬中','頬近']},
+  {teeth:[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],idxs:[3,4,5],labels:['舌遠','舌中','舌近']},
+  {teeth:[28,27,26,25,24,23,22,21,11,12,13,14,15,16,17,18],idxs:[0,1,2],labels:['頬遠','頬中','頬近']},
+  {teeth:[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],idxs:[3,4,5],labels:['口蓋遠','口蓋中','口蓋近']},
+];
+// 4点法フェーズ
+const PH4 = [
+  {teeth:[38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48],idxs:[0,1],labels:['頬遠','頬近']},
+  {teeth:[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],idxs:[2,3],labels:['舌遠','舌近']},
+  {teeth:[28,27,26,25,24,23,22,21,11,12,13,14,15,16,17,18],idxs:[0,1],labels:['頬遠','頬近']},
+  {teeth:[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],idxs:[2,3],labels:['口蓋遠','口蓋近']},
+];
+
+function ptLbl6(tooth,i){const isU=uArr.includes(tooth);const sides=isU?['頬','頬','頬','口蓋','口蓋','口蓋']:['頬','頬','頬','舌','舌','舌'];const pos=['遠','中','近','遠','中','近'];return sides[i]+pos[i];}
+function ptLbl4(tooth,i){const isU=uArr.includes(tooth);const sides=isU?['頬','頬','口蓋','口蓋']:['頬','頬','舌','舌'];const pos=['遠','近','遠','近'];return sides[i]+pos[i];}
+
+function buildSeq(phases){
+  const seq=[];
+  phases.forEach((ph,phIdx)=>{ph.teeth.forEach(tooth=>{ph.idxs.forEach((pdIdx,pos)=>{seq.push({tooth,pdIdx,phaseIdx:phIdx,label:ph.labels[pos]});});});});
+  return seq;
+}
+
+let SEQ6=[],SEQ4=[],mode=1,screen=0;
+let cur1=0,cur6=0,cur4=0,states={};
+let rangeSelMode=false,rangeStart=null,rangeList=null;
+let dragSelActive=false,dragSelStart=null,dragSelEnd=null,dragMoved=false,dragSuppressClick=false;
+
+// ── ドラッグ範囲 ──────────────────────────────────────
+function getTboxFromPoint(x,y){
+  const el=document.elementFromPoint(x,y);if(!el)return null;
+  const tb=el.closest('.tbox');if(!tb)return null;
+  const n=parseInt(tb.id.replace('t-',''));
+  return(!isNaN(n)&&TEETH.includes(n))?n:null;
+}
+function updateDragPreview(){
+  TEETH.forEach(n=>{const el=document.getElementById('t-'+n);if(el)el.classList.remove('drag-range-tbox');});
+  if(!dragSelStart||!dragSelEnd)return;
+  const i1=INPUT_1.indexOf(dragSelStart),i2=INPUT_1.indexOf(dragSelEnd);
+  if(i1<0||i2<0)return;
+  INPUT_1.slice(Math.min(i1,i2),Math.max(i1,i2)+1).forEach(n=>{const el=document.getElementById('t-'+n);if(el)el.classList.add('drag-range-tbox');});
+}
+function initDrag(){
+  const jw=document.getElementById('jaw-wrap');
+  jw.addEventListener('touchstart',e=>{
+    const n=getTboxFromPoint(e.touches[0].clientX,e.touches[0].clientY);
+    if(n===null)return;
+    dragSelActive=true;dragSelStart=n;dragSelEnd=n;dragMoved=false;dragSuppressClick=false;
+    updateDragPreview();
+  },{passive:true});
+  jw.addEventListener('touchmove',e=>{
+    if(!dragSelActive)return;e.preventDefault();
+    const n=getTboxFromPoint(e.touches[0].clientX,e.touches[0].clientY);
+    if(n!==null&&n!==dragSelEnd){dragMoved=true;dragSelEnd=n;updateDragPreview();}
+  },{passive:false});
+  jw.addEventListener('touchend',e=>{
+    if(!dragSelActive)return;
+    if(dragMoved&&dragSelStart!==null&&dragSelEnd!==null){
+      const i1=INPUT_1.indexOf(dragSelStart),i2=INPUT_1.indexOf(dragSelEnd);
+      const lo=Math.min(i1,i2),hi=Math.max(i1,i2);
+      rangeList=INPUT_1.slice(lo,hi+1).filter(t=>!states[t].missing);
+      if(rangeList.length>0)cur1=INPUT_1.indexOf(rangeList[0]);
+      TEETH.forEach(n=>{const el=document.getElementById('t-'+n);if(el)el.classList.remove('drag-range-tbox');});
+      updateRangeBtn();updateRangeHighlight();upd();dragSuppressClick=true;
+    }
+    dragSelActive=false;dragSelStart=null;dragSelEnd=null;dragMoved=false;
+  },{passive:true});
+}
+
+// ── 初期化 ────────────────────────────────────────────
+function init(){
+  SEQ6=buildSeq(PH6);SEQ4=buildSeq(PH4);
+  TEETH.forEach(n=>{states[n]={
+    missing:false,
+    pd1:'-',pd4:['-','-','-','-'],pd6:['-','-','-','-','-','-'],
+    bop1:false,pus1:false,
+    bop4:[false,false,false,false],pus4:[false,false,false,false],
+    bop6:[false,false,false,false,false,false],pus6:[false,false,false,false,false,false],
+    mobility:null,
+    plaque:{buccal:false,mesial:false,distal:false,lingual:false}
+  };});
+  WISDOM.forEach(n=>{states[n].missing=true;});
+  uArr.forEach(n=>makeT(n,'u-row'));lArr.forEach(n=>makeT(n,'l-row'));
+  // 正中線の挿入（8番目と9番目の間）
+  const mlU=document.createElement('div');mlU.className='midline-vert';
+  const mlL=document.createElement('div');mlL.className='midline-vert';
+  const uR=document.getElementById('u-row'),lR=document.getElementById('l-row');
+  uR.insertBefore(mlU,uR.children[8]);
+  lR.insertBefore(mlL,lR.children[8]);
+  WISDOM.forEach(n=>{document.getElementById('t-'+n).classList.add('missing');});
+  cur1=0;while(cur1<INPUT_1.length&&states[INPUT_1[cur1]].missing)cur1++;
+  cur6=0;while(cur6<SEQ6.length&&states[SEQ6[cur6].tooth].missing)cur6++;
+  cur4=0;while(cur4<SEQ4.length&&states[SEQ4[cur4].tooth].missing)cur4++;
+  document.getElementById('d-in').valueAsDate=new Date();
+  initDrag();renderPanel();upd();calc();
+}
+
+// ── 歯ボックス生成 ────────────────────────────────────
+function makeT(n,rowId){
+  const d=document.createElement('div');d.id='t-'+n;
+  let qc='',ql='';
+  if(uArr.includes(n)){qc=(n>=11&&n<=18)?'q-ur':'q-ul';ql=(n===18)?'右上':(n===28)?'左上':'';}
+  else{qc=(n>=41&&n<=48)?'q-lr':'q-ll';ql=(n===48)?'右下':(n===38)?'左下':'';}
+  d.className='tbox '+qc;
+  d.innerHTML=`<span class="qlabel">${ql}</span><div class="tnum">${n%10}</div><div class="pchart"><div id="pt-${n}" class="pp st"></div><div id="pb-${n}" class="pp sb"></div><div id="pl-${n}" class="pp sl"></div><div id="pr-${n}" class="pp sr"></div></div><div id="v-${n}"></div><div id="dt-${n}" class="dots"></div>`;
+  d.addEventListener('click',()=>selectTooth(n));
+  document.getElementById(rowId).appendChild(d);
+}
+
+// ── モード・スクリーン切替 ────────────────────────────
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.mode-tab').forEach((t,i)=>t.classList.toggle('active',[1,4,6].indexOf(m)===i));
+  updateJawClass();updatePickers();
+  TEETH.forEach(n=>renderTBox(n));upd();calc();
+}
+function setScreen(s){
+  const oldTooth=curTooth();
+  screen=s;
+  document.querySelectorAll('.stab').forEach((t,i)=>t.classList.toggle('active',i===s));
+  // カーソル同期
+  const i=INPUT_1.indexOf(oldTooth);if(i>=0)cur1=i;
+  updateJawClass();updatePickers();renderPanel();
+  TEETH.forEach(n=>renderTBox(n));upd();
+}
+function updateJawClass(){
+  const jw=document.getElementById('jaw-wrap');
+  jw.className='jaw-wrap '+(screen===0?'sc0 mode-'+mode:screen===1?'sc1':'sc2');
+}
+function updatePickers(){
+  const isPocket=screen===0;
+  document.getElementById('pt-picker6').classList.toggle('show',isPocket&&mode===6);
+  document.getElementById('pt-picker4').classList.toggle('show',isPocket&&mode===4);
+  document.getElementById('phase-bar').classList.toggle('show',isPocket&&(mode===6||mode===4));
+}
+
+// ── パネル描画 ────────────────────────────────────────
+function renderPanel(){
+  const pb=document.getElementById('panel-body');
+  if(screen===0){
+    // ポケット+出血排膿
+    pb.innerHTML='<div class="num-grid" id="num-grid"></div>';
+    const ng=document.getElementById('num-grid');
+    [1,2,3,4,5,6,7,8,9,10].forEach(v=>{
+      const b=document.createElement('button');b.className='btn bn';b.textContent=v;
+      if(v===4||v===5)b.style.color='#fb923c';
+      else if(v===6||v===7)b.style.color='#f87171';
+      else if(v>=8)b.style.color='#c084fc';
+      b.addEventListener('click',()=>pr(v));ng.appendChild(b);
+    });
+    const bop=document.createElement('button');
+    bop.id='bop-btn';bop.className='btn';bop.textContent='BOP';
+    bop.style.cssText='background:#ef4444;color:white;font-size:15px;font-weight:900;min-height:54px;border-radius:10px;';
+    bop.addEventListener('click',tB);ng.appendChild(bop);
+    const pus=document.createElement('button');
+    pus.className='btn';pus.textContent='排膿';
+    pus.style.cssText='background:#3b82f6;color:white;font-size:14px;font-weight:900;min-height:54px;border-radius:10px;';
+    pus.addEventListener('click',tPs);ng.appendChild(pus);
+  } else if(screen===1){
+    pb.innerHTML=`<div class="mob-panel">
+      <button class="mob-btn" id="mb0" onclick="setM(0)">0</button>
+      <button class="mob-btn" id="mb1" onclick="setM(1)">1</button>
+      <button class="mob-btn" id="mb2" onclick="setM(2)">2</button>
+      <button class="mob-btn" id="mb3" onclick="setM(3)">3</button>
+    </div>`;
+  } else {
+    pb.innerHTML=`<div class="plq-panel"><div class="plq-grid">
+      <button id="pb-t" style="grid-column:2;grid-row:1" class="bp" onclick="tPl('top')">B</button>
+      <button id="pb-l" style="grid-column:1;grid-row:2" class="bp" onclick="tPl('left')">D</button>
+      <button id="pb-r" style="grid-column:3;grid-row:2" class="bp" onclick="tPl('right')">M</button>
+      <button id="pb-b" style="grid-column:2;grid-row:3" class="bp" onclick="tPl('bottom')">P</button>
+    </div></div>`;
+  }
+}
+
+// ── 表示更新 ──────────────────────────────────────────
+function upd(){
+  document.querySelectorAll('.tbox').forEach(e=>e.classList.remove('active-tbox'));
+  const n=curTooth();
+  document.getElementById('t-'+n).classList.add('active-tbox');
+  document.getElementById('cur-lbl').textContent=n;
+
+  let sub='';
+  if(screen===0){
+    if(mode===6){sub=SEQ6[cur6].label;updatePhaseBar(SEQ6[cur6].phaseIdx);renderPicker6(n);}
+    else if(mode===4){sub=SEQ4[cur4].label;updatePhaseBar(SEQ4[cur4].phaseIdx);renderPicker4(n);}
+    else{updatePhaseBar(-1);}
+  }
+  document.getElementById('cur-sub').textContent=sub;
+
+  // 欠損ボタン
+  const mb=document.getElementById('missing-btn');
+  if(states[n].missing){mb.textContent='欠損解除';mb.classList.add('missing-active');}
+  else{mb.textContent='欠損';mb.classList.remove('missing-active');mb.style.background='#64748b';}
+
+  // 動揺ボタンのハイライト
+  if(screen===1){
+    [0,1,2,3].forEach(i=>{const b=document.getElementById('mb'+i);if(b){b.classList.remove('mob-sel-0','mob-sel-1','mob-sel-2','mob-sel-3');if(states[n].mobility===i)b.classList.add('mob-sel-'+i);}});
+  }
+  // プラークボタン更新
+  if(screen===2){updatePlqBtns(n);}
+
+  updateRangeHighlight();
+}
+
+function curTooth(){
+  if(screen===0&&mode===6)return SEQ6[cur6].tooth;
+  if(screen===0&&mode===4)return SEQ4[cur4].tooth;
+  return INPUT_1[cur1];
+}
+
+function updatePhaseBar(active){
+  for(let i=0;i<4;i++){const el=document.getElementById('ph-'+i);el.classList.remove('active','done');if(i<active)el.classList.add('done');else if(i===active)el.classList.add('active');}
+}
+
+// ── ピッカー ──────────────────────────────────────────
+function renderPicker6(n){
+  const s=states[n],curIdx=SEQ6[cur6].pdIdx;
+  document.getElementById('title6').textContent=n+' の計測点';
+  const g=document.getElementById('grid6');g.innerHTML='';
+  for(let i=0;i<6;i++){
+    const b=s.bop6[i],p=s.pus6[i],v=s.pd6[i];
+    let cls='pt-btn';if(i===curIdx)cls+=' selected';
+    if(b&&p)cls+=' has-both';else if(b)cls+=' has-bop';else if(p)cls+=' has-pus';
+    const btn=document.createElement('button');btn.className=cls;
+    btn.innerHTML=`<span class="pt-lbl">${ptLbl6(n,i)}</span><span class="pt-val ${pdColor(v)}">${v}</span>`;
+    btn.addEventListener('click',()=>{const i2=SEQ6.findIndex(s=>s.tooth===n&&s.pdIdx===i);if(i2>=0){cur6=i2;upd();}});
+    g.appendChild(btn);
+  }
+}
+function renderPicker4(n){
+  const s=states[n],curIdx=SEQ4[cur4].pdIdx;
+  document.getElementById('title4').textContent=n+' の計測点';
+  const g=document.getElementById('grid4');g.innerHTML='';
+  for(let i=0;i<4;i++){
+    const b=s.bop4[i],p=s.pus4[i],v=s.pd4[i];
+    let cls='pt-btn';if(i===curIdx)cls+=' selected';
+    if(b&&p)cls+=' has-both';else if(b)cls+=' has-bop';else if(p)cls+=' has-pus';
+    const btn=document.createElement('button');btn.className=cls;
+    btn.innerHTML=`<span class="pt-lbl">${ptLbl4(n,i)}</span><span class="pt-val ${pdColor(v)}">${v}</span>`;
+    btn.addEventListener('click',()=>{const i2=SEQ4.findIndex(s=>s.tooth===n&&s.pdIdx===i);if(i2>=0){cur4=i2;upd();}});
+    g.appendChild(btn);
+  }
+}
+
+// ── 歯選択 ────────────────────────────────────────────
+function selectTooth(n){
+  if(dragSuppressClick){dragSuppressClick=false;return;}
+  if(rangeSelMode){
+    if(rangeStart===null){rangeStart=n;updateRangeBtn();updateRangeHighlight();}
+    else{
+      const i1=INPUT_1.indexOf(rangeStart),i2=INPUT_1.indexOf(n);
+      const lo=Math.min(i1,i2),hi=Math.max(i1,i2);
+      rangeList=INPUT_1.slice(lo,hi+1).filter(t=>!states[t].missing);
+      rangeSelMode=false;rangeStart=null;
+      if(rangeList.length>0)cur1=INPUT_1.indexOf(rangeList[0]);
+      updateRangeBtn();updateRangeHighlight();
+    }
+    upd();return;
+  }
+  if(screen===0&&mode===6){const i=SEQ6.findIndex(s=>s.tooth===n);if(i>=0)cur6=i;}
+  else if(screen===0&&mode===4){const i=SEQ4.findIndex(s=>s.tooth===n);if(i>=0)cur4=i;}
+  else{
+    const i=INPUT_1.indexOf(n);
+    if(i>=0){
+      if(cur1===i&&!states[n].missing&&screen===0&&mode===1){
+        const val=prompt(n+' のPD値（1〜10）');
+        if(val!==null){const num=parseInt(val);if(num>=1&&num<=10)pr(num);}
+        return;
+      }
+      cur1=i;
+    }
+  }
+  upd();
+}
+
+// ── PD入力 ────────────────────────────────────────────
+function pr(num){
+  if(rangeList&&rangeList.length>0&&screen===0&&mode===1){
+    rangeList.forEach(n=>{if(!states[n].missing){states[n].pd1=num;renderTBox(n);}});
+    calc();
+    const last=rangeList[rangeList.length-1];let ni=INPUT_1.indexOf(last)+1;
+    while(ni<INPUT_1.length&&states[INPUT_1[ni]].missing)ni++;
+    if(ni<INPUT_1.length)cur1=ni;
+    clearRange();return;
+  }
+  if(screen!==0)return;
+  if(mode===1){const n=INPUT_1[cur1];if(states[n].missing)return;states[n].pd1=num;renderTBox(n);calc();next1();}
+  else if(mode===4){const st=SEQ4[cur4];if(states[st.tooth].missing){next4();return;}states[st.tooth].pd4[st.pdIdx]=num;renderTBox(st.tooth);calc();next4();}
+  else{const st=SEQ6[cur6];if(states[st.tooth].missing){next6();return;}states[st.tooth].pd6[st.pdIdx]=num;renderTBox(st.tooth);calc();next6();}
+}
+
+function next1(){let i=cur1+1;while(i<INPUT_1.length&&states[INPUT_1[i]].missing)i++;if(i<INPUT_1.length){cur1=i;upd();}}
+function next4(){let i=cur4+1;while(i<SEQ4.length&&states[SEQ4[i].tooth].missing)i++;if(i<SEQ4.length){cur4=i;upd();}}
+function next6(){let i=cur6+1;while(i<SEQ6.length&&states[SEQ6[i].tooth].missing)i++;if(i<SEQ6.length){cur6=i;upd();}}
+
+function goBack(){
+  if(screen===0&&mode===6){let i=cur6-1;while(i>=0&&states[SEQ6[i].tooth].missing)i--;if(i>=0){cur6=i;upd();}}
+  else if(screen===0&&mode===4){let i=cur4-1;while(i>=0&&states[SEQ4[i].tooth].missing)i--;if(i>=0){cur4=i;upd();}}
+  else{let i=cur1-1;while(i>=0&&states[INPUT_1[i]].missing)i--;if(i>=0){cur1=i;upd();}}
+}
+
+// ── BOP / 排膿 ────────────────────────────────────────
+function tB(){
+  if(rangeList&&rangeList.length>0&&mode===1){
+    const allBop=rangeList.every(n=>!states[n].missing&&states[n].bop1);
+    rangeList.forEach(n=>{if(!states[n].missing){states[n].bop1=!allBop;renderTBox(n);}});
+    calc();clearRange();return;
+  }
+  if(mode===1){const n=curTooth();states[n].bop1=!states[n].bop1;renderTBox(n);calc();}
+  else if(mode===4){const st=SEQ4[cur4];states[st.tooth].bop4[st.pdIdx]=!states[st.tooth].bop4[st.pdIdx];renderTBox(st.tooth);renderPicker4(st.tooth);calc();}
+  else{const st=SEQ6[cur6];states[st.tooth].bop6[st.pdIdx]=!states[st.tooth].bop6[st.pdIdx];renderTBox(st.tooth);renderPicker6(st.tooth);calc();}
+}
+function tPs(){
+  if(rangeList&&rangeList.length>0&&mode===1){
+    const allPus=rangeList.every(n=>!states[n].missing&&states[n].pus1);
+    rangeList.forEach(n=>{if(!states[n].missing){states[n].pus1=!allPus;renderTBox(n);}});
+    calc();clearRange();return;
+  }
+  if(mode===1){const n=curTooth();states[n].pus1=!states[n].pus1;renderTBox(n);calc();}
+  else if(mode===4){const st=SEQ4[cur4];states[st.tooth].pus4[st.pdIdx]=!states[st.tooth].pus4[st.pdIdx];renderTBox(st.tooth);renderPicker4(st.tooth);calc();}
+  else{const st=SEQ6[cur6];states[st.tooth].pus6[st.pdIdx]=!states[st.tooth].pus6[st.pdIdx];renderTBox(st.tooth);renderPicker6(st.tooth);calc();}
+}
+
+// ── 動揺 ──────────────────────────────────────────────
+function setM(m){
+  if(rangeList&&rangeList.length>0){
+    const allSame=rangeList.every(n=>!states[n].missing&&states[n].mobility===m);
+    rangeList.forEach(n=>{if(!states[n].missing){states[n].mobility=allSame?null:m;renderTBox(n);}});
+    calc();clearRange();return;
+  }
+  const n=curTooth();
+  states[n].mobility=(states[n].mobility===m)?null:m;
+  renderTBox(n);calc();
+  if(states[n].mobility!==null)next1();
+  else upd();
+}
+
+// ── 欠損 ──────────────────────────────────────────────
+function markMissing(){
+  if(rangeList&&rangeList.length>0){
+    const teeth=rangeList.slice();
+    teeth.forEach(function(t){states[t].missing=true;const el=document.getElementById('t-'+t);if(el)el.classList.add('missing');});
+    calc();while(cur1<INPUT_1.length&&states[INPUT_1[cur1]].missing)cur1++;
+    clearRange();return;
+  }
+  const n=curTooth();
+  states[n].missing=!states[n].missing;
+  document.getElementById('t-'+n).classList.toggle('missing',states[n].missing);
+  if(states[n].missing)next1();
+  calc();upd();
+}
+
+// ── クリア ────────────────────────────────────────────
+function clVal(){
+  const n=curTooth();
+  if(screen===0){
+    if(mode===1){states[n].pd1='-';states[n].bop1=false;states[n].pus1=false;}
+    else if(mode===4){const i=SEQ4[cur4].pdIdx;states[n].pd4[i]='-';states[n].bop4[i]=false;states[n].pus4[i]=false;renderPicker4(n);}
+    else{const i=SEQ6[cur6].pdIdx;states[n].pd6[i]='-';states[n].bop6[i]=false;states[n].pus6[i]=false;renderPicker6(n);}
+  } else if(screen===1){states[n].mobility=null;}
+  else{states[n].plaque={buccal:false,mesial:false,distal:false,lingual:false};}
+  renderTBox(n);calc();upd();
+}
+
+// ── プラーク ──────────────────────────────────────────
+function tPl(pos){
+  const n=curTooth(),isU=uArr.includes(n),isR=RIGHTS.has(n);
+  const map={top:isU?'buccal':'lingual',bottom:isU?'lingual':'buccal',left:isR?'distal':'mesial',right:isR?'mesial':'distal'};
+  states[n].plaque[map[pos]]=!states[n].plaque[map[pos]];
+  renderTBox(n);updatePlqBtns(n);calc();
+}
+function updatePlqBtns(n){
+  const s=states[n],isU=uArr.includes(n),isR=RIGHTS.has(n);
+  const map={top:isU?'buccal':'lingual',bottom:isU?'lingual':'buccal',left:isR?'distal':'mesial',right:isR?'mesial':'distal'};
+  const bt=document.getElementById('pb-t'),bb=document.getElementById('pb-b'),bl=document.getElementById('pb-l'),br=document.getElementById('pb-r');
+  // ラベル
+  if(bt){bt.textContent=isU?'B':'L';bt.classList.toggle('bp-on',s.plaque[map.top]);}
+  if(bb){bb.textContent=isU?'P':'B';bb.classList.toggle('bp-on',s.plaque[map.bottom]);}
+  if(bl){bl.textContent=isR?'D':'M';bl.classList.toggle('bp-on',s.plaque[map.left]);}
+  if(br){br.textContent=isR?'M':'D';br.classList.toggle('bp-on',s.plaque[map.right]);}
+}
+
+// ── 範囲選択 ──────────────────────────────────────────
+function toggleRange(){
+  if(rangeList){rangeList=null;rangeStart=null;rangeSelMode=false;}
+  else{rangeSelMode=!rangeSelMode;if(!rangeSelMode)rangeStart=null;}
+  updateRangeHighlight();updateRangeBtn();upd();
+}
+function clearRange(){rangeList=null;rangeStart=null;rangeSelMode=false;updateRangeBtn();updateRangeHighlight();upd();}
+function updateRangeBtn(){
+  const btn=document.getElementById('range-btn');
+  if(rangeList){btn.textContent='範囲解除';btn.classList.add('range-active');}
+  else if(rangeSelMode){btn.textContent=rangeStart?'終点を選択':'始点を選択';btn.classList.add('range-active');}
+  else{btn.textContent='範囲選択';btn.classList.remove('range-active');}
+}
+function updateRangeHighlight(){
+  TEETH.forEach(n=>{const el=document.getElementById('t-'+n);if(el)el.classList.remove('range-in-tbox');});
+  if(rangeList)rangeList.forEach(n=>{const el=document.getElementById('t-'+n);if(el)el.classList.add('range-in-tbox');});
+}
+
+// ── 色 ────────────────────────────────────────────────
+function pdColor(v){return typeof v==='number'?(v<=3?'':v<=5?'c-o':v<=7?'c-r':'c-p'):'';}
+function cellBg(b,p){return(b&&p)?' has-both':b?' has-bop':p?' has-pus':'';}
+
+// ── 歯ボックス描画 ────────────────────────────────────
+function renderTBox(n){
+  const s=states[n],isL=lArr.includes(n),isR=RIGHTS.has(n);
+  // プラーク円
+  const op=v=>v?'1':'0';
+  document.getElementById('pt-'+n).style.opacity=op(isL?s.plaque.lingual:s.plaque.buccal);
+  document.getElementById('pb-'+n).style.opacity=op(isL?s.plaque.buccal:s.plaque.lingual);
+  document.getElementById('pl-'+n).style.opacity=op(isR?s.plaque.distal:s.plaque.mesial);
+  document.getElementById('pr-'+n).style.opacity=op(isR?s.plaque.mesial:s.plaque.distal);
+
+  const dtEl=document.getElementById('dt-'+n);
+  const vEl=document.getElementById('v-'+n);
+  const tbox=document.getElementById('t-'+n);
+
+  // BOP/排膿で歯ボックスに色付け
+  tbox.classList.remove('tbox-bop','tbox-pus','tbox-both');
+  let hasBop=false,hasPus=false;
+  if(mode===1){hasBop=s.bop1;hasPus=s.pus1;}
+  else if(mode===4){hasBop=s.bop4.some(Boolean);hasPus=s.pus4.some(Boolean);}
+  else{hasBop=s.bop6.some(Boolean);hasPus=s.pus6.some(Boolean);}
+  if(hasBop&&hasPus)tbox.classList.add('tbox-both');
+  else if(hasBop)tbox.classList.add('tbox-bop');
+  else if(hasPus)tbox.classList.add('tbox-pus');
+
+  if(screen===0){
+    dtEl.innerHTML='';
+    if(mode===1){
+      vEl.className='vnum '+pdColor(s.pd1);vEl.style.cssText='';vEl.textContent=s.pd1;
+    } else if(mode===4){
+      const r1=isL?[2,3]:[0,1],r2=isL?[0,1]:[2,3];
+      const r1lbl=isL?'舌':'頬',r2lbl=isL?'頬':'口蓋';
+      const mkR=idxs=>idxs.map(i=>`<span class="pd4-cell ${pdColor(s.pd4[i])}${cellBg(s.bop4[i],s.pus4[i])}">${s.pd4[i]}</span>`).join('');
+      vEl.className='pd4-wrap';vEl.style.cssText='width:100%';
+      vEl.innerHTML=`<div class="pd4-sep">${r1lbl}</div><div class="pd4-row">${mkR(r1)}</div><div class="pd4-sep">${r2lbl}</div><div class="pd4-row">${mkR(r2)}</div>`;
+    } else {
+      const r1=isL?[3,4,5]:[0,1,2],r2=isL?[0,1,2]:[3,4,5];
+      const r1lbl=isL?'舌':'頬',r2lbl=isL?'頬':'口蓋';
+      const mkR=idxs=>idxs.map(i=>`<span class="pd6-cell ${pdColor(s.pd6[i])}${cellBg(s.bop6[i],s.pus6[i])}">${s.pd6[i]}</span>`).join('');
+      vEl.className='pd6-wrap';vEl.style.cssText='width:100%';
+      vEl.innerHTML=`<div class="pd6-sep">${r1lbl}</div><div class="pd6-row">${mkR(r1)}</div><div class="pd6-sep">${r2lbl}</div><div class="pd6-row">${mkR(r2)}</div>`;
+    }
+  } else if(screen===1){
+    dtEl.innerHTML='';
+    vEl.className='mob-val-big';vEl.style.cssText='';
+    vEl.textContent=states[n].mobility!==null?states[n].mobility:'-';
+  } else {
+    dtEl.innerHTML='';
+    const p=s.plaque,cnt=[p.buccal,p.mesial,p.distal,p.lingual].filter(Boolean).length;
+    vEl.className='';vEl.style.cssText='font-size:10px;font-weight:900;color:#a16207;';
+    vEl.textContent=cnt>0?cnt+'/4':'';
+  }
+}
+
+// ── 統計 ──────────────────────────────────────────────
+function calc(){
+  let t=0,b=0,ps=0,pl=0,d4=0,meas=0;
+  TEETH.forEach(n=>{
+    if(states[n].missing)return;t++;
+    const s=states[n],p=s.plaque;
+    if(p.buccal)pl++;if(p.mesial)pl++;if(p.distal)pl++;if(p.lingual)pl++;
+    if(mode===1){
+      if(s.bop1)b++;if(s.pus1)ps++;
+      if(typeof s.pd1==='number'){meas++;if(s.pd1>=4)d4++;}
+    } else if(mode===4){
+      b+=s.bop4.filter(Boolean).length;ps+=s.pus4.filter(Boolean).length;
+      s.pd4.forEach(v=>{if(typeof v==='number'){meas++;if(v>=4)d4++;}});
+    } else {
+      b+=s.bop6.filter(Boolean).length;ps+=s.pus6.filter(Boolean).length;
+      s.pd6.forEach(v=>{if(typeof v==='number'){meas++;if(v>=4)d4++;}});
+    }
+  });
+  document.getElementById('s-t').textContent=t;
+  document.getElementById('s-p').textContent=t?Math.round(pl/(t*4)*100):0;
+  const denom=mode===1?t:mode===4?t*4:t*6;
+  document.getElementById('s-b').textContent=denom?Math.round(b/denom*100):0;
+  document.getElementById('s-n').textContent=denom?Math.round(ps/denom*100):0;
+  document.getElementById('s-d').textContent=d4;
+  document.getElementById('s-meas').textContent=meas;
+}
+
+// ── カルテコピー ──────────────────────────────────────
+function copyEMR(){
+  let t=0,b=0,ps=0,d4=[];
+  TEETH.forEach(n=>{
+    if(states[n].missing)return;t++;
+    const s=states[n];
+    if(mode===1){if(s.bop1)b++;if(s.pus1)ps++;if(typeof s.pd1==='number'&&s.pd1>=4)d4.push('#'+n+'('+s.pd1+'mm)');}
+    else if(mode===4){b+=s.bop4.filter(Boolean).length;ps+=s.pus4.filter(Boolean).length;const v=s.pd4.filter(v=>typeof v==='number'&&v>=4);if(v.length)d4.push('#'+n+'('+v.join('/')+'mm)');}
+    else{b+=s.bop6.filter(Boolean).length;ps+=s.pus6.filter(Boolean).length;const v=s.pd6.filter(v=>typeof v==='number'&&v>=4);if(v.length)d4.push('#'+n+'('+v.join('/')+'mm)');}
+  });
+  const pcr=document.getElementById('s-p').textContent,bop=document.getElementById('s-b').textContent,pus=document.getElementById('s-n').textContent;
+  const ml=mode===1?'1点法':mode===4?'4点法':'6点法';
+  const no=document.getElementById('karte-no').value,nm=document.getElementById('pt-name').value;
+  const txt=`【歯周基本検査（${ml}）】${no?'No:'+no+' ':''} ${nm?nm+' ':''}PCR:${pcr}% / BOP:${bop}% / 排膿:${pus}% / 歯数:${t}本\n4mm以上: ${d4.length?d4.join(', '):'なし'}`;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).catch(()=>fbCopy(txt));}else fbCopy(txt);
+  const btn=document.getElementById('copy-btn');btn.textContent='✅ 完了!';setTimeout(()=>btn.textContent='📋 コピー',1800);
+}
+function fbCopy(t){const ta=document.createElement('textarea');ta.value=t;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.focus();ta.select();document.execCommand('copy');document.body.removeChild(ta);}
+
+let lastTap=0;
+document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTap<280)e.preventDefault();lastTap=now;},{passive:false});
+// 複数の方法で初期化を保証（iOS FilesアプリのWKWebView対応）
+var _inited=false;
+function safeInit(){
+  if(_inited)return;_inited=true;
+  try{init();}catch(e){
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;top:60px;left:10px;right:10px;background:#dc2626;color:white;padding:15px;z-index:9999;font-size:13px;border-radius:8px;white-space:pre-wrap;';
+    d.textContent='Error: '+e.message+'\n'+e.stack;
+    document.body.appendChild(d);
+  }
+}
+document.addEventListener('DOMContentLoaded',safeInit);
+window.addEventListener('load',safeInit);
+setTimeout(safeInit,50);
+setTimeout(safeInit,300);
+safeInit(); // スクリプトがbody末尾にあるのでDOMは確実に存在する→直接呼び出し
+</script>
+</body>
+</html>
