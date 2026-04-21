@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>歯周基本検査 v5</title>
+<title>歯周基本検査 v6</title>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 html { height: 100%; }
@@ -59,6 +59,9 @@ body { margin: 0; padding: 6px; padding-top: max(6px, env(safe-area-inset-top));
 .sc0.mode-6 .tbox { height: 118px; min-height: 118px; }
 .sc1 .tbox { height: 78px; min-height: 78px; }
 .sc2 .tbox { height: 72px; min-height: 72px; }
+.sc3.mode-1 .tbox { height: 104px; min-height: 104px; }
+.sc3.mode-4 .tbox { height: 122px; min-height: 122px; }
+.sc3.mode-6 .tbox { height: 140px; min-height: 140px; }
 /* PD数値 */
 .vnum { font-size: 32px; font-weight: 900; line-height: 1; }
 .c-o { color: #f97316; } .c-r { color: #dc2626; } .c-p { color: #7e22ce; }
@@ -135,13 +138,13 @@ body { margin: 0; padding: 6px; padding-top: max(6px, env(safe-area-inset-top));
 <body onload="if(typeof safeInit==='function')safeInit()">
 <!-- JS動作確認バナー：JSが動けば即座に非表示になる -->
 <div id="nojs-msg" style="position:fixed;top:0;left:0;right:0;background:#f59e0b;color:white;padding:12px;text-align:center;font-size:15px;font-weight:bold;z-index:9999;">
-  ⚠️ 読み込み中… 表示されない場合はSafariで開いてください（v5）
+  ⚠️ 読み込み中… 表示されない場合はSafariで開いてください（v6）
 </div>
 <script>document.getElementById('nojs-msg').style.display='none';</script>
 <div class="card">
   <!-- ヘッダー -->
   <div class="hdr">
-    <h2>歯周基本検査 <span style="font-size:10px;color:#94a3b8">v5</span></h2>
+    <h2>歯周基本検査 <span style="font-size:10px;color:#94a3b8">v6</span></h2>
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="setMode(1)">1点法</button>
       <button class="mode-tab" onclick="setMode(4)">4点法</button>
@@ -170,6 +173,7 @@ body { margin: 0; padding: 6px; padding-top: max(6px, env(safe-area-inset-top));
     <button class="stab active" onclick="setScreen(0)">ポケット・出血排膿</button>
     <button class="stab" onclick="setScreen(1)">動揺</button>
     <button class="stab" onclick="setScreen(2)">プラーク</button>
+    <button class="stab" onclick="setScreen(3)">一覧</button>
   </div>
 
   <!-- フェーズバー -->
@@ -226,20 +230,28 @@ const lArr = [48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38];
 const TEETH = [...uArr,...lArr];
 const RIGHTS = new Set([18,17,16,15,14,13,12,11,48,47,46,45,44,43,42,41]);
 const INPUT_1 = [38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48,18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28];
-
-// 6点法フェーズ
+// 6点法フェーズ（phaseBar=フェーズバー番号）
+// ①下顎頬側: #37→#31(遠近) → #41→#47(近遠)  ②下顎舌側: #47→#41(遠近) → #31→#37(近遠)
+// ③上顎頬側: #27→#21(遠近) → #11→#17(近遠)  ④上顎口蓋: #17→#11(遠近) → #21→#27(近遠)
 const PH6 = [
-  {teeth:[38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48],idxs:[0,1,2],labels:['頬遠','頬中','頬近']},
-  {teeth:[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],idxs:[3,4,5],labels:['舌遠','舌中','舌近']},
-  {teeth:[28,27,26,25,24,23,22,21,11,12,13,14,15,16,17,18],idxs:[0,1,2],labels:['頬遠','頬中','頬近']},
-  {teeth:[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],idxs:[3,4,5],labels:['口蓋遠','口蓋中','口蓋近']},
+  {teeth:[38,37,36,35,34,33,32,31],idxs:[0,1,2],labels:['頬遠','頬中','頬近'],phaseBar:0},
+  {teeth:[41,42,43,44,45,46,47,48],idxs:[2,1,0],labels:['頬近','頬中','頬遠'],phaseBar:0},
+  {teeth:[48,47,46,45,44,43,42,41],idxs:[3,4,5],labels:['舌遠','舌中','舌近'],phaseBar:1},
+  {teeth:[31,32,33,34,35,36,37,38],idxs:[5,4,3],labels:['舌近','舌中','舌遠'],phaseBar:1},
+  {teeth:[28,27,26,25,24,23,22,21],idxs:[0,1,2],labels:['頬遠','頬中','頬近'],phaseBar:2},
+  {teeth:[11,12,13,14,15,16,17,18],idxs:[2,1,0],labels:['頬近','頬中','頬遠'],phaseBar:2},
+  {teeth:[18,17,16,15,14,13,12,11],idxs:[3,4,5],labels:['口蓋遠','口蓋中','口蓋近'],phaseBar:3},
+  {teeth:[21,22,23,24,25,26,27,28],idxs:[5,4,3],labels:['口蓋近','口蓋中','口蓋遠'],phaseBar:3},
 ];
-// 4点法フェーズ
 const PH4 = [
-  {teeth:[38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48],idxs:[0,1],labels:['頬遠','頬近']},
-  {teeth:[48,47,46,45,44,43,42,41,31,32,33,34,35,36,37,38],idxs:[2,3],labels:['舌遠','舌近']},
-  {teeth:[28,27,26,25,24,23,22,21,11,12,13,14,15,16,17,18],idxs:[0,1],labels:['頬遠','頬近']},
-  {teeth:[18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28],idxs:[2,3],labels:['口蓋遠','口蓋近']},
+  {teeth:[38,37,36,35,34,33,32,31],idxs:[0,1],labels:['頬遠','頬近'],phaseBar:0},
+  {teeth:[41,42,43,44,45,46,47,48],idxs:[1,0],labels:['頬近','頬遠'],phaseBar:0},
+  {teeth:[48,47,46,45,44,43,42,41],idxs:[2,3],labels:['舌遠','舌近'],phaseBar:1},
+  {teeth:[31,32,33,34,35,36,37,38],idxs:[3,2],labels:['舌近','舌遠'],phaseBar:1},
+  {teeth:[28,27,26,25,24,23,22,21],idxs:[0,1],labels:['頬遠','頬近'],phaseBar:2},
+  {teeth:[11,12,13,14,15,16,17,18],idxs:[1,0],labels:['頬近','頬遠'],phaseBar:2},
+  {teeth:[18,17,16,15,14,13,12,11],idxs:[2,3],labels:['口蓋遠','口蓋近'],phaseBar:3},
+  {teeth:[21,22,23,24,25,26,27,28],idxs:[3,2],labels:['口蓋近','口蓋遠'],phaseBar:3},
 ];
 
 function ptLbl6(tooth,i){const isU=uArr.includes(tooth);const sides=isU?['頬','頬','頬','口蓋','口蓋','口蓋']:['頬','頬','頬','舌','舌','舌'];const pos=['遠','中','近','遠','中','近'];return sides[i]+pos[i];}
@@ -247,7 +259,12 @@ function ptLbl4(tooth,i){const isU=uArr.includes(tooth);const sides=isU?['頬','
 
 function buildSeq(phases){
   const seq=[];
-  phases.forEach((ph,phIdx)=>{ph.teeth.forEach(tooth=>{ph.idxs.forEach((pdIdx,pos)=>{seq.push({tooth,pdIdx,phaseIdx:phIdx,label:ph.labels[pos]});});});});
+  phases.forEach((ph,phIdx)=>{
+    const barIdx=ph.phaseBar!==undefined?ph.phaseBar:phIdx;
+    ph.teeth.forEach(tooth=>{
+      ph.idxs.forEach((pdIdx,pos)=>{seq.push({tooth,pdIdx,phaseIdx:barIdx,label:ph.labels[pos]});});
+    });
+  });
   return seq;
 }
 
@@ -355,7 +372,7 @@ function setScreen(s){
 }
 function updateJawClass(){
   const jw=document.getElementById('jaw-wrap');
-  jw.className='jaw-wrap '+(screen===0?'sc0 mode-'+mode:screen===1?'sc1':'sc2');
+  jw.className='jaw-wrap '+(screen===0?'sc0 mode-'+mode:screen===1?'sc1':screen===2?'sc2':'sc3 mode-'+mode);
 }
 function updatePickers(){
   const isPocket=screen===0;
@@ -393,13 +410,15 @@ function renderPanel(){
       <button class="mob-btn" id="mb2" onclick="setM(2)">2</button>
       <button class="mob-btn" id="mb3" onclick="setM(3)">3</button>
     </div>`;
-  } else {
+  } else if(screen===2){
     pb.innerHTML=`<div class="plq-panel"><div class="plq-grid">
       <button id="pb-t" style="grid-column:2;grid-row:1" class="bp" onclick="tPl('top')">B</button>
       <button id="pb-l" style="grid-column:1;grid-row:2" class="bp" onclick="tPl('left')">D</button>
       <button id="pb-r" style="grid-column:3;grid-row:2" class="bp" onclick="tPl('right')">M</button>
       <button id="pb-b" style="grid-column:2;grid-row:3" class="bp" onclick="tPl('bottom')">P</button>
     </div></div>`;
+  } else {
+    pb.innerHTML='<div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center;color:#64748b;font-size:12px;line-height:1.9;padding:8px;"><b style="color:#0f766e;font-size:14px;">一覧表示中</b><br>ポケット・動揺・プラークを<br>まとめて確認できます</div>';
   }
 }
 
@@ -662,13 +681,18 @@ function renderTBox(n){
     if(mode===1){
       vEl.className='vnum '+pdColor(s.pd1);vEl.style.cssText='';vEl.textContent=s.pd1;
     } else if(mode===4){
-      const r1=isL?[2,3]:[0,1],r2=isL?[0,1]:[2,3];
+      // 右側の歯(#11-18,#41-48)は左セル=遠心、左側の歯(#21-28,#31-38)は左セル=近心
+      const isR=RIGHTS.has(n);
+      const r1=isL?(isR?[2,3]:[3,2]):(isR?[0,1]:[1,0]);
+      const r2=isL?(isR?[0,1]:[1,0]):(isR?[2,3]:[3,2]);
       const r1lbl=isL?'舌':'頬',r2lbl=isL?'頬':'口蓋';
       const mkR=idxs=>idxs.map(i=>`<span class="pd4-cell ${pdColor(s.pd4[i])}${cellBg(s.bop4[i],s.pus4[i])}">${s.pd4[i]}</span>`).join('');
       vEl.className='pd4-wrap';vEl.style.cssText='width:100%';
       vEl.innerHTML=`<div class="pd4-sep">${r1lbl}</div><div class="pd4-row">${mkR(r1)}</div><div class="pd4-sep">${r2lbl}</div><div class="pd4-row">${mkR(r2)}</div>`;
     } else {
-      const r1=isL?[3,4,5]:[0,1,2],r2=isL?[0,1,2]:[3,4,5];
+      const isR=RIGHTS.has(n);
+      const r1=isL?(isR?[3,4,5]:[5,4,3]):(isR?[0,1,2]:[2,1,0]);
+      const r2=isL?(isR?[0,1,2]:[2,1,0]):(isR?[3,4,5]:[5,4,3]);
       const r1lbl=isL?'舌':'頬',r2lbl=isL?'頬':'口蓋';
       const mkR=idxs=>idxs.map(i=>`<span class="pd6-cell ${pdColor(s.pd6[i])}${cellBg(s.bop6[i],s.pus6[i])}">${s.pd6[i]}</span>`).join('');
       vEl.className='pd6-wrap';vEl.style.cssText='width:100%';
@@ -678,11 +702,38 @@ function renderTBox(n){
     dtEl.innerHTML='';
     vEl.className='mob-val-big';vEl.style.cssText='';
     vEl.textContent=states[n].mobility!==null?states[n].mobility:'-';
-  } else {
+  } else if(screen===2){
     dtEl.innerHTML='';
     const p=s.plaque,cnt=[p.buccal,p.mesial,p.distal,p.lingual].filter(Boolean).length;
     vEl.className='';vEl.style.cssText='font-size:10px;font-weight:900;color:#a16207;';
     vEl.textContent=cnt>0?cnt+'/4':'';
+  } else {
+    // screen===3: 一覧（ポケット＋動揺＋プラーク）
+    if(mode===1){
+      vEl.className='vnum '+pdColor(s.pd1);vEl.style.cssText='font-size:22px;';vEl.textContent=s.pd1;
+    } else if(mode===4){
+      // 右側の歯(#11-18,#41-48)は左セル=遠心、左側の歯(#21-28,#31-38)は左セル=近心
+      const isR=RIGHTS.has(n);
+      const r1=isL?(isR?[2,3]:[3,2]):(isR?[0,1]:[1,0]);
+      const r2=isL?(isR?[0,1]:[1,0]):(isR?[2,3]:[3,2]);
+      const r1lbl=isL?'舌':'頬',r2lbl=isL?'頬':'口蓋';
+      const mkR=idxs=>idxs.map(i=>`<span class="pd4-cell ${pdColor(s.pd4[i])}${cellBg(s.bop4[i],s.pus4[i])}">${s.pd4[i]}</span>`).join('');
+      vEl.className='pd4-wrap';vEl.style.cssText='width:100%';
+      vEl.innerHTML=`<div class="pd4-sep">${r1lbl}</div><div class="pd4-row">${mkR(r1)}</div><div class="pd4-sep">${r2lbl}</div><div class="pd4-row">${mkR(r2)}</div>`;
+    } else {
+      const isR=RIGHTS.has(n);
+      const r1=isL?(isR?[3,4,5]:[5,4,3]):(isR?[0,1,2]:[2,1,0]);
+      const r2=isL?(isR?[0,1,2]:[2,1,0]):(isR?[3,4,5]:[5,4,3]);
+      const r1lbl=isL?'舌':'頬',r2lbl=isL?'頬':'口蓋';
+      const mkR=idxs=>idxs.map(i=>`<span class="pd6-cell ${pdColor(s.pd6[i])}${cellBg(s.bop6[i],s.pus6[i])}">${s.pd6[i]}</span>`).join('');
+      vEl.className='pd6-wrap';vEl.style.cssText='width:100%';
+      vEl.innerHTML=`<div class="pd6-sep">${r1lbl}</div><div class="pd6-row">${mkR(r1)}</div><div class="pd6-sep">${r2lbl}</div><div class="pd6-row">${mkR(r2)}</div>`;
+    }
+    const mob=s.mobility!==null?s.mobility:'-';
+    const pp=s.plaque;const plcnt=[pp.buccal,pp.mesial,pp.distal,pp.lingual].filter(Boolean).length;
+    const mobColor=s.mobility===0?'#15803d':s.mobility===1?'#a16207':s.mobility===2?'#c2410c':s.mobility===3?'#dc2626':'#94a3b8';
+    dtEl.style.cssText='width:100%;display:flex;justify-content:center;gap:4px;height:auto;padding:1px 0;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:8px;font-weight:900;';
+    dtEl.innerHTML=`<span style="color:${mobColor}">M:${mob}</span><span style="color:#a16207">PCR:${plcnt}</span>`;
   }
 }
 
