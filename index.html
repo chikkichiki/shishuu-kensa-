@@ -302,12 +302,12 @@ function initDrag(){
   },{passive:false});
   jw.addEventListener('touchend',e=>{
     if(!dragSelActive)return;
+    TEETH.forEach(n=>{const el=document.getElementById('t-'+n);if(el)el.classList.remove('drag-range-tbox');});
     if(dragMoved&&dragSelStart!==null&&dragSelEnd!==null){
       const i1=INPUT_1.indexOf(dragSelStart),i2=INPUT_1.indexOf(dragSelEnd);
       const lo=Math.min(i1,i2),hi=Math.max(i1,i2);
       rangeList=INPUT_1.slice(lo,hi+1).filter(t=>!states[t].missing);
       if(rangeList.length>0)cur1=INPUT_1.indexOf(rangeList[0]);
-      TEETH.forEach(n=>{const el=document.getElementById('t-'+n);if(el)el.classList.remove('drag-range-tbox');});
       updateRangeBtn();updateRangeHighlight();upd();dragSuppressClick=true;
     }
     dragSelActive=false;dragSelStart=null;dragSelEnd=null;dragMoved=false;
@@ -513,9 +513,9 @@ function selectTooth(n){
     const i=INPUT_1.indexOf(n);
     if(i>=0){
       if(cur1===i&&!states[n].missing&&screen===0&&mode===1){
-        const val=prompt(n+' のPD値（1〜10）');
-        if(val!==null){const num=parseInt(val);if(num>=1&&num<=10)pr(num);}
-        return;
+        const cur=states[n].pd1;
+        const next=typeof cur==='number'?(cur>=14?0:cur+1):1;
+        pr(next);return;
       }
       cur1=i;
     }
@@ -554,7 +554,11 @@ function tB(){
   if(rangeList&&rangeList.length>0&&mode===1){
     const allBop=rangeList.every(n=>!states[n].missing&&states[n].bop1);
     rangeList.forEach(n=>{if(!states[n].missing){states[n].bop1=!allBop;renderTBox(n);}});
-    calc();clearRange();return;
+    calc();
+    const last=rangeList[rangeList.length-1];let ni=INPUT_1.indexOf(last)+1;
+    while(ni<INPUT_1.length&&states[INPUT_1[ni]].missing)ni++;
+    if(ni<INPUT_1.length)cur1=ni;
+    clearRange();return;
   }
   if(mode===1){const n=curTooth();states[n].bop1=!states[n].bop1;renderTBox(n);calc();}
   else if(mode===4){const st=SEQ4[cur4];states[st.tooth].bop4[st.pdIdx]=!states[st.tooth].bop4[st.pdIdx];renderTBox(st.tooth);renderPicker4(st.tooth);calc();}
@@ -564,7 +568,11 @@ function tPs(){
   if(rangeList&&rangeList.length>0&&mode===1){
     const allPus=rangeList.every(n=>!states[n].missing&&states[n].pus1);
     rangeList.forEach(n=>{if(!states[n].missing){states[n].pus1=!allPus;renderTBox(n);}});
-    calc();clearRange();return;
+    calc();
+    const last=rangeList[rangeList.length-1];let ni=INPUT_1.indexOf(last)+1;
+    while(ni<INPUT_1.length&&states[INPUT_1[ni]].missing)ni++;
+    if(ni<INPUT_1.length)cur1=ni;
+    clearRange();return;
   }
   if(mode===1){const n=curTooth();states[n].pus1=!states[n].pus1;renderTBox(n);calc();}
   else if(mode===4){const st=SEQ4[cur4];states[st.tooth].pus4[st.pdIdx]=!states[st.tooth].pus4[st.pdIdx];renderTBox(st.tooth);renderPicker4(st.tooth);calc();}
@@ -576,7 +584,11 @@ function setM(m){
   if(rangeList&&rangeList.length>0){
     const allSame=rangeList.every(n=>!states[n].missing&&states[n].mobility===m);
     rangeList.forEach(n=>{if(!states[n].missing){states[n].mobility=allSame?null:m;renderTBox(n);}});
-    calc();clearRange();return;
+    calc();
+    const last=rangeList[rangeList.length-1];let ni=INPUT_1.indexOf(last)+1;
+    while(ni<INPUT_1.length&&states[INPUT_1[ni]].missing)ni++;
+    if(ni<INPUT_1.length)cur1=ni;
+    clearRange();return;
   }
   const n=curTooth();
   states[n].mobility=(states[n].mobility===m)?null:m;
